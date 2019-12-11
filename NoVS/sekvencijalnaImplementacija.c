@@ -9,7 +9,7 @@
 int main(int argc, char const *argv[])
 {
 int width, height, channels;
-unsigned char *img = stbi_load("sky.jpg", &width, &height, &channels, 0);
+unsigned char *img = stbi_load("flower.jpg", &width, &height, &channels, 0);
     if(img == NULL) {
         printf("Greska pri ucitavanju slike.\n");
         exit(1);
@@ -31,7 +31,7 @@ unsigned char *gray_img = malloc(gray_img_size);
             *(pg + 1) = *(p + 3);
         }
     }
-stbi_write_jpg("sky2.jpg", width, height, gray_channels, gray_img, 100);
+stbi_write_jpg("flower.jpg", width, height, gray_channels, gray_img, 100);
 
 return 0;
 }
