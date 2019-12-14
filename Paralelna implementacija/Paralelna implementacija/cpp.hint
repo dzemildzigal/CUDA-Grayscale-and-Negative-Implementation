@@ -2,3 +2,6 @@
 // such as names of functions and macros.
 // For more information see https://go.microsoft.com/fwlink/?linkid=865984
 #define __global__ __location__(global)
+#define __global__ __location__(global)
+#define __global__ __location__(global)
+#define __shared__ __location__(shared)
