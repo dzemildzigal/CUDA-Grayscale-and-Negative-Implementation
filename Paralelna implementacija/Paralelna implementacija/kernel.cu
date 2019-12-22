@@ -66,20 +66,24 @@ int main(void) {
 		getError(cudaMemcpy(dev_input_RGB, input, img_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
 
 		getError(cudaMalloc((void**)&dev_input_RGB_2, img_size * sizeof(unsigned char)));
-		//getError(cudaMemcpy(dev_input_RGB_2, input, img_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
+		getError(cudaMemcpy(dev_input_RGB_2, input, img_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
 
 		getError(cudaMalloc((void**)&dev_input_GRAY, gray_img_size * sizeof(unsigned char)));
 		getError(cudaMemcpy(dev_input_GRAY, gray_img, gray_img_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
 
 
 
-		dim3 blockDims(128, 1, 1);
-		dim3 gridDims((unsigned int)ceil((double)(width*height * 3 / blockDims.x)), 1, 1);
-		
+		dim3 blockDims(640, 1, 1);
+		dim3 gridDims((unsigned int)ceil((double)(width*height / (blockDims.x))), 1, 1);
+		//dim3 blockDims(32, 32, 1);
+		//dim3 gridDims(1 + (width / 32), 1 + (height / 32), 1);
+
+
 		cudaEventRecord(start);
 		 // pozvati kernel ovdje
-		//grayscale <<<gridDims, blockDims >>> (dev_input_RGB,dev_input_GRAY, width, height);
-		negative << <gridDims, blockDims >> > (dev_input_RGB, dev_input_RGB_2, width, height);
+		grayscale <<<gridDims, blockDims >>> (dev_input_RGB,dev_input_GRAY, width, height);
+		//negative << <gridDims, blockDims >> > (dev_input_RGB, dev_input_RGB_2, width, height);
+		//negative << <numBlocks, threadsPerBlock >> > (dev_input_RGB, dev_input_RGB_2, width, height);
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		float milis = 0;
@@ -87,14 +91,14 @@ int main(void) {
 		time += milis;
 
 
-		//getError(cudaMemcpy(gray_img, dev_input_GRAY, gray_img_size * sizeof(unsigned char), cudaMemcpyDeviceToHost));
-		getError(cudaMemcpy(input,dev_input_RGB_2, img_size * sizeof(unsigned char), cudaMemcpyDeviceToHost));
+		getError(cudaMemcpy(gray_img, dev_input_GRAY, gray_img_size * sizeof(unsigned char), cudaMemcpyDeviceToHost));
+		//getError(cudaMemcpy(input,dev_input_RGB_2, img_size * sizeof(unsigned char), cudaMemcpyDeviceToHost));
 		getError(cudaFree(dev_input_GRAY));
 		getError(cudaFree(dev_input_RGB));
-		getError(cudaFree(dev_input_RGB_2));
+		//getError(cudaFree(dev_input_RGB_2));
 		izlaz[0] = naziv[0];
-		//stbi_write_jpg(izlaz, width, height, 1, gray_img, 100);
-		stbi_write_jpg(izlaz, width, height, 3, input,100);
+		stbi_write_jpg(izlaz, width, height, 1, gray_img, 100);
+		//stbi_write_jpg(izlaz, width, height, 3, input,100);
 	}
 	printf("ukupno %f ms \n", time);
 	return 0; 
