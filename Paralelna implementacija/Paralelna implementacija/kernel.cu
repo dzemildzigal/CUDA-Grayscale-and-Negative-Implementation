@@ -20,12 +20,24 @@ void getError(cudaError_t err) {
 }
 
 __global__
-void filter(unsigned char* input_rgb, unsigned char* input_gray, int width, int height) {
+void grayscale(const unsigned char* input_rgb, unsigned char* input_gray,const int width, const int height) {
 	const unsigned int offset = blockIdx.x*blockDim.x + threadIdx.x;
-	const unsigned int a = (offset << 1) + (offset << 0);
-	if (offset < width*height)
+	if (offset >= width * height) return;
+	const unsigned int a = (offset << 1) + (offset); //a = offset*3
 		input_gray[offset] = (input_rgb[a] + input_rgb[a + 1] + input_rgb[a + 2]) * .33333333333333;
 }
+
+__global__
+void negative(const unsigned char* input_rgb,unsigned char* output, const int width, const int height) {
+	const unsigned int offset = blockIdx.x*blockDim.x + threadIdx.x;
+	if (offset >= width * height) return;
+	const unsigned int a = (offset << 1) + (offset); // a = offset*3
+	output[a] = 255 - input_rgb[a];
+	output[a + 1] = 255 - input_rgb[a+1];
+	output[a + 2] = 255 - input_rgb[a+2];
+}
+
+	
 
 int main(void) { 
 	unsigned char i = 1;
@@ -48,10 +60,13 @@ int main(void) {
 		int gray_channels = channels == 4 ? 2 : 1;
 		size_t gray_img_size = width * height * gray_channels;
 		unsigned char *gray_img = (unsigned char*)malloc(gray_img_size);
-		unsigned char *dev_input_RGB, *dev_input_GRAY;
+		unsigned char *dev_input_RGB, *dev_input_GRAY, *dev_input_RGB_2;
 		
 		getError(cudaMalloc((void**)&dev_input_RGB, img_size * sizeof(unsigned char)));
 		getError(cudaMemcpy(dev_input_RGB, input, img_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
+
+		getError(cudaMalloc((void**)&dev_input_RGB_2, img_size * sizeof(unsigned char)));
+		//getError(cudaMemcpy(dev_input_RGB_2, input, img_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
 
 		getError(cudaMalloc((void**)&dev_input_GRAY, gray_img_size * sizeof(unsigned char)));
 		getError(cudaMemcpy(dev_input_GRAY, gray_img, gray_img_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
@@ -63,7 +78,8 @@ int main(void) {
 		
 		cudaEventRecord(start);
 		 // pozvati kernel ovdje
-		filter <<<gridDims, blockDims >>> (dev_input_RGB,dev_input_GRAY, width, height);
+		//grayscale <<<gridDims, blockDims >>> (dev_input_RGB,dev_input_GRAY, width, height);
+		negative << <gridDims, blockDims >> > (dev_input_RGB, dev_input_RGB_2, width, height);
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		float milis = 0;
@@ -71,11 +87,14 @@ int main(void) {
 		time += milis;
 
 
-		getError(cudaMemcpy(gray_img, dev_input_GRAY, gray_img_size * sizeof(unsigned char), cudaMemcpyDeviceToHost));
+		//getError(cudaMemcpy(gray_img, dev_input_GRAY, gray_img_size * sizeof(unsigned char), cudaMemcpyDeviceToHost));
+		getError(cudaMemcpy(input,dev_input_RGB_2, img_size * sizeof(unsigned char), cudaMemcpyDeviceToHost));
 		getError(cudaFree(dev_input_GRAY));
 		getError(cudaFree(dev_input_RGB));
+		getError(cudaFree(dev_input_RGB_2));
 		izlaz[0] = naziv[0];
-		stbi_write_jpg(izlaz, width, height, 1, gray_img, 100);
+		//stbi_write_jpg(izlaz, width, height, 1, gray_img, 100);
+		stbi_write_jpg(izlaz, width, height, 3, input,100);
 	}
 	printf("ukupno %f ms \n", time);
 	return 0; 
